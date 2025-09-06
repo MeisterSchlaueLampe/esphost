@@ -12,7 +12,7 @@ This folder contains my experiments with ESPHOME's host platform.
 
 ### Components: I2C
 
-  I2C driver for ESPHOME on LINUX. Requires I2C LINUX kernel driver.
+  I2C component for ESPHOME on LINUX. Requires I2C LINUX kernel driver.
 
   - Status: Works (Hack)
   - Problems: No I2C Clock Frequency Management
@@ -21,7 +21,7 @@ This folder contains my experiments with ESPHOME's host platform.
 
 ### Components: CH341_I2C
 
-  LIBUSB based driver for the CH341 USB to I2C chip. Does not require any drivers.
+  LIBUSB based component for the CH341 USB to I2C chip. Does not require any drivers.
 
   - Status: Works (Hack)
   - Problems: Limited Transfer Length
