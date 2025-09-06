@@ -1,0 +1,166 @@
+esphome:
+
+  name: esph-sysmon
+
+  on_boot:
+    - priority: 100
+      then:
+        - logger.log: "Host platform running!"
+    - priority: -100
+      then:
+        - lambda: setlinebuf( stdout );
+
+  includes: include.h
+
+host:
+
+  mac_address: "00:aa:ff:ee:ff:03"
+
+api:
+
+  id: hass_api
+
+logger:
+
+  level: DEBUG
+#  level: VERBOSE
+
+sensor:
+
+  - platform: template
+    name: "CPU Temperature"
+    icon: "mdi:thermometer"
+    device_class: temperature
+    unit_of_measurement: "°C"
+    accuracy_decimals: 0
+    update_interval: 3s
+    filters:
+      - median:
+          window_size: 5
+          send_every: 5
+      - or:
+        - delta: 5
+        - throttle: 5min
+      - round: 0
+    lambda: |-
+            // Try multiple temperature sources
+            std::vector<std::string> temp_paths = {
+              "/sys/class/thermal/thermal_zone0/temp",
+              "/sys/class/thermal/thermal_zone1/temp",
+              "/sys/devices/platform/coretemp.0/hwmon/hwmon*/temp1_input"
+            };
+            for (const auto& path : temp_paths) {
+              std::ifstream temp_file(path);
+              if (temp_file.is_open()) {
+                int temp_millidegrees;
+                if (temp_file >> temp_millidegrees) {
+                  float temp_celsius = temp_millidegrees / 1000.0;
+                  if (temp_celsius > 0 && temp_celsius < 150) { // Sanity check
+                    return temp_celsius;
+                  }
+                }
+              }
+            }
+            return NAN;
+
+  - platform: template
+    name: "CPU Usage"
+    icon: "mdi:cpu-64-bit"
+    unit_of_measurement: "%"
+    state_class: measurement
+    accuracy_decimals: 0
+    update_interval: 3s
+    filters:
+      - median:
+          window_size: 5
+          send_every: 5
+      - or:
+        - delta: 10
+        - throttle: 5min
+      - round: 0
+    lambda: |-
+            std::ifstream stat_file("/proc/stat");
+            float usage = NAN;
+            std::string line;
+            static unsigned long last_total = 0, last_idle = 0;
+            if (std::getline(stat_file, line))
+            {
+              std::istringstream iss(line);
+              std::string cpu_label;
+              std::vector<unsigned long> times(10, 0);
+              iss >> cpu_label;
+              for (size_t i = 0; i < times.size() && iss >> times[i]; ++i);
+              // Calculate total and idle time
+              unsigned long idle = times[3] + times[4]; // idle + iowait
+              unsigned long total = 0;
+              for (auto time : times) total += time;
+              if ( last_total > 0 ) {
+                unsigned long total_diff = total - last_total;
+                unsigned long idle_diff = idle - last_idle;
+                if (total_diff > 0)
+                  usage = 100.0 * (total_diff - idle_diff) / total_diff;
+              }
+              last_total = total;
+              last_idle = idle;
+            }
+            return usage;
+
+  - platform: template
+    name: "RAM Usage"
+    icon: "mdi:memory"
+    unit_of_measurement: "%"
+    state_class: measurement
+    accuracy_decimals: 0
+    update_interval: 3s
+    filters:
+      - median:
+          window_size: 5
+          send_every: 5
+      - or:
+        - delta: 5
+        - throttle: 5min
+      - round: 0
+    lambda: |-
+            std::ifstream meminfo("/proc/meminfo");
+            std::string line;
+            unsigned long mem_total = 0, mem_free = 0, mem_available = 0;
+            unsigned long buffers = 0, cached = 0;
+            unsigned long swap_total = 0, swap_free = 0;
+            while (std::getline(meminfo, line)) {
+              std::istringstream iss(line);
+              std::string key;
+              unsigned long value;
+              if (iss >> key >> value) {
+                if (key == "MemTotal:") mem_total = value;
+                else if (key == "MemFree:") mem_free = value;
+                else if (key == "MemAvailable:") mem_available = value;
+                else if (key == "Buffers:") buffers = value;
+                else if (key == "Cached:") cached = value;
+                else if (key == "SwapTotal:") swap_total = value;
+                else if (key == "SwapFree:") swap_free = value;
+              }
+            }
+            if (mem_total > 0) {
+              // Use MemAvailable if available, otherwise calculate
+              unsigned long available = mem_available > 0 ? mem_available : (mem_free + buffers + cached);
+              return 100.0 * (mem_total - available) / mem_total;
+            }
+            return NAN;
+
+  - platform: template
+    name: "Root Disk Usage"
+    icon: "mdi:harddisk"
+    unit_of_measurement: "%"
+    state_class: measurement
+    accuracy_decimals: 0
+    update_interval: 30s
+    filters:
+      - or:
+        - delta: 1
+        - throttle: 15min
+      - round: 0
+    lambda: |-
+        struct statvfs vfs;
+        if ( statvfs ( "/", &vfs ) < 0 ) { perror( "statvfs" ); return NAN; }
+        return 100.0 * ( vfs.f_blocks - vfs.f_bfree ) / ( vfs.f_blocks - vfs.f_bfree + vfs.f_bavail );
+
