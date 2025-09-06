@@ -24,7 +24,7 @@ void CH341I2CBus::setup() {
 
   // Set I2C speed
   ESP_LOGCONFIG(TAG, "Setting I2C Bus clock frequency %d", this->frequency_ );
-  CH341I2CSpeed speed = CH341A_I2C_20KHZ; //this->frequency_to_speed_(this->frequency_);
+  CH341I2CSpeed speed = this->frequency_to_speed_(this->frequency_);
   if (!this->set_i2c_speed_(speed)) {
     ESP_LOGE(TAG, "Failed to set I2C speed");
     this->mark_failed();

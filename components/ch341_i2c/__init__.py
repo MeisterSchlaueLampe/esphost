@@ -54,9 +54,8 @@ async def to_code(config):
     await cg.register_component(var, config)
 #    await i2c.register_i2c_bus(var, config)
     
-    # Set frequency (convert to CH341 speed setting)
-    speed_setting = SUPPORTED_FREQUENCIES[config[CONF_FREQUENCY]]
-    cg.add(var.set_frequency(speed_setting))
+    # Set frequency
+    cg.add(var.set_frequency(config[CONF_FREQUENCY]))
     
     # Set scan flag
     cg.add(var.set_scan(config[CONF_SCAN]))

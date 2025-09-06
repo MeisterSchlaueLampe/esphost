@@ -1,16 +1,15 @@
 
 services:
 
-  esph-ch341:
+  test-ch341:
 
-    container_name: esph-ch341
+    container_name: test-ch341
 
     build:
       context: .
 
     volumes:
       - ./ch341.yaml:/config/run.yaml:ro
-      - ../../host-components:/config/host-components:ro
       - /etc/localtime:/etc/localtime:ro
 
     restart: "no"
