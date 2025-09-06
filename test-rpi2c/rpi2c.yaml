@@ -1,0 +1,37 @@
+esphome:
+
+  name: test-rpi2c
+
+external_components:
+
+  - source:
+      type: git
+      url: https://github.com/MeisterSchlaueLampe/esphost.git
+      ref: main
+    components: [ i2c ]
+
+host:
+
+api:
+
+logger:
+
+  level: VERBOSE
+
+i2c:
+
+  id: i2c_bus_1
+  linux_device: /dev/i2c-1
+
+sensor:
+
+  - platform: bme280_i2c
+    address: 0x76
+    update_interval: 60s
+    i2c_id: i2c_bus_1
+    temperature:
+      name: "Temperature"
+    humidity:
+      name: "Humidity"
+    pressure:
+      name: "Pressure"
