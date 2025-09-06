@@ -26,3 +26,17 @@ This folder contains my experiments with ESPHOME's host platform.
   - Status: Works (Hack)
   - Problems: Limited Transfer Length
   - Todo: Support more than one chip, Better LIBUSB integration, Hotplug detection, Make ESPHOME recognize this as 'i2c:' bus driver
+
+
+### Project: TEST-RPI2C
+
+  Demo project for the I2C component.
+
+  - Host Platform: RASPBERRY PI OS
+
+
+### Project: TEST-CH341
+
+  Test project for the CH341_I2C component.
+
+  - Host Platform: DOCKER on LINUX
